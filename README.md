@@ -30,6 +30,10 @@ src/
   main.py
 configs/
   runtime.yaml
+data/
+  samples/
+    images/      # dry-run input frames (filenames include capture timestamp)
+logs/            # dry-run CAN emulation outputs (e.g., can_emulator.log)
 models/  (gitignored, holds YOLO weights)
 ```
 

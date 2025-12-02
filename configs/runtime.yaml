@@ -1,0 +1,17 @@
+# Minimal runtime config for dry-run mode
+mode: dry_run
+
+paths:
+  model_weights: models/yolo11n-seg.pt
+  sample_images_dir: data/samples/images
+  can_log: logs/can_emulator.log
+
+conveyor:
+  speed_m_per_min: 30       # provided
+  distance_to_eject_m: 1    # from top of image to ejector
+  width_cm: 40              # physical conveyor width
+
+inference:
+  confidence: 0.25
+  iou: 0.45
+  accept_classes: []        # leave empty to treat all detections as rejects; set names to accept

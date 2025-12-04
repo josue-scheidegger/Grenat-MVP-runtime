@@ -1,0 +1,9 @@
+v4l2-ctl -d /dev/video0 --stream-mmap --stream-count=1 --stream-to=frame1.raw
+python3 quick_test.py --device /dev/video0 --pixel-format RG10 --bypass-mode 0 --output frame0.raw
+python3 live_view_imx900.py --device0 /dev/video0 --device1 /dev/video1 --bit-depth 10 --align msb --bayer bg
+python -m py_compile live_view_imx900.py raw_utils.py
+python3 live_view_imx900.py --device0 /dev/video0 --device1 /dev/video1 --bit-depth 10 --align msb --bayer bg --demosaic edge --display-scale 1.0
+python3 live_view_imx900.py --device0 /dev/video0 --device1 /dev/video1 --preview-mode raw
+python3 convert_raw_10bit.py frame_debug.raw --width 2048 --height 1536 --bit-depth 10 --align msb --bayer bg --preview-mode raw
+python3 convert_raw_10bit.py frame_debug.raw --width 2048 --height 1536 --bit-depth 10 --align msb --bayer bg --demosaic edge
+python calibrate_white_balance.py --device /dev/video0 --bayer bg --roi X Y W H --output-preview preview.png

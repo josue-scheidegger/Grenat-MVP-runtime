@@ -5,6 +5,8 @@ from typing import Optional
 import cv2
 import numpy as np
 
+from raw_utils import align_raw, demosaic, to_uint8
+
 
 def read_raw(path: Path, width: int, height: int, bit_depth: int, align: str = "auto") -> np.ndarray:
     """
@@ -19,46 +21,7 @@ def read_raw(path: Path, width: int, height: int, bit_depth: int, align: str = "
     if data.size != expected:
         raise ValueError(f"Size mismatch: expected {expected} pixels, got {data.size}")
     frame = data.reshape((height, width))
-    shift = 0
-    if align == "msb":
-        shift = 16 - bit_depth
-    elif align == "auto":
-        max_expected = (1 << bit_depth) - 1
-        if frame.max() > max_expected:
-            shift = 16 - bit_depth
-    elif align == "lsb":
-        shift = 0
-    else:
-        raise ValueError("align must be one of: auto, msb, lsb")
-
-    if shift > 0:
-        frame = frame >> shift
-
-    max_val = (1 << bit_depth) - 1
-    frame = np.clip(frame, 0, max_val)
-    return frame
-
-
-def to_uint8(frame: np.ndarray, bit_depth: int) -> np.ndarray:
-    # Scale 0..(2^bit_depth-1) to 0..255
-    max_val = (1 << bit_depth) - 1
-    scaled = (frame.astype(np.float32) / max_val) * 255.0
-    return scaled.astype(np.uint8)
-
-
-def demosaic_if_needed(frame_8bit: np.ndarray, bayer: Optional[str]) -> np.ndarray:
-    if not bayer:
-        return frame_8bit
-    code_map = {
-        "bg": cv2.COLOR_BayerBG2BGR,
-        "gb": cv2.COLOR_BayerGB2BGR,
-        "gr": cv2.COLOR_BayerGR2BGR,
-        "rg": cv2.COLOR_BayerRG2BGR,
-    }
-    code = code_map.get(bayer.lower())
-    if code is None:
-        raise ValueError(f"Unsupported Bayer pattern '{bayer}'. Use one of: bg, gb, gr, rg.")
-    return cv2.cvtColor(frame_8bit, code)
+    return align_raw(frame, bit_depth, align)
 
 
 def main() -> None:
@@ -77,6 +40,12 @@ def main() -> None:
         help="Bit alignment: auto (default), msb (shift down from MSB), lsb (use as-is).",
     )
     parser.add_argument(
+        "--demosaic",
+        choices=["bilinear", "edge", "vng"],
+        default="edge",
+        help="Demosaicing algorithm when --bayer is set.",
+    )
+    parser.add_argument(
         "--save", type=Path, default=None, help="Optional path to save the 8-bit output (PNG)."
     )
     args = parser.parse_args()
@@ -87,7 +56,7 @@ def main() -> None:
         f"min={frame_raw.min()}, max={frame_raw.max()}, mean={frame_raw.mean():.1f}"
     )
     frame_8bit = to_uint8(frame_raw, args.bit_depth)
-    frame_vis = demosaic_if_needed(frame_8bit, args.bayer)
+    frame_vis = demosaic(frame_8bit, args.bayer, method=args.demosaic) if args.bayer else frame_8bit
 
     if args.save:
         args.save.parent.mkdir(parents=True, exist_ok=True)

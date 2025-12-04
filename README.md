@@ -21,13 +21,27 @@ Cameras (IMX900 x2) --> Frame ingest --> Preprocess --> YOLOv11 inference
 
 ## Current Minimal Structure
 Start simple and grow toward the full system:
-- Single entrypoint script to wire config, load the model, grab frames, and print/placeholder-actuate results.
-- One YAML config file (human-friendly, comments allowed) for camera IDs, model weights path, and minimal IO settings.
+- Single dry-run CLI (`grenat_runtime/cli/dry_run.py`) to wire config, load the model, grab frames, and print/placeholder-actuate results.
+- Shared package `grenat_runtime/` holds inference, capture, preview, and V4L2 helpers.
+- Utility CLIs for capture/live-view/calibration live under `grenat_runtime/cli` with thin wrappers in `scripts/`.
 
 Suggested starting tree:
 ```
-src/
-  main.py
+grenat_runtime/
+  actuation.py
+  inference.py
+  io/v4l2.py
+  preview/
+    live.py
+    calibration.py
+  vision/
+    raw_processing.py
+  cli/
+    dry_run.py
+    live_view.py
+    capture_raw.py
+    calibrate_white_balance.py
+    convert_raw.py
 configs/
   runtime.yaml
 data/
@@ -94,7 +108,12 @@ models/  (gitignored)
 
 ## Running (expected)
 ```bash
-python -m src.app --config configs/runtime.yaml
+python -m grenat_runtime.cli.dry_run --config configs/runtime.yaml
+# Utilities (wrappers live in scripts/ for convenience):
+#   python scripts/live_view_imx900.py ...
+#   python scripts/capture_raw.py ...
+#   python scripts/calibrate_white_balance.py ...
+#   python scripts/convert_raw_10bit.py ...
 ```
 Suggested config keys:
 - `cameras`: device ids, exposure, gain, ROI per side.
